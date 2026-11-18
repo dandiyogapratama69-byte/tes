@@ -1,0 +1,12 @@
+{
+  "id": "flipbook-timeline",
+  "name": "Flipbook Timeline - Dreams 2 Style",
+  "version": "0.1.0",
+  "description": "Flipbook Timeline ala Dreams 2 untuk ProCraft. Layer != Frame.",
+  "apiVersion": 1,
+  "kind": "interface",
+  "main": "main.js",
+  "entry": "flipbook_plugin.wasm",
+  "wasm": "flipbook_plugin.wasm",
+  "author": "dandiyogapratama69"
+}
