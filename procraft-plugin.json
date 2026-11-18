@@ -1,8 +1,0 @@
-{
-  "id": "flipbook-timeline",
-  "name": "Flipbook Timeline",
-  "version": "0.1.0",
-  "api_version": 3,
-  "module": "flipbook_plugin.wasm",
-  "description": "Flipbook Timeline ala Dreams 2. Layer != Frame."
-}
