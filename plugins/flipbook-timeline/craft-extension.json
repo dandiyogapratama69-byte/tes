@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "id": "org.example.flipbook-timeline",
+  "name": "Flipbook Timeline",
+  "version": "1.0.0",
+  "holds": ["hooks"],
+  "publisher": { "name": "Example" },
+  "description": "Flipbook test - geser posisi pakai slider.",
+  "compat": { "procraft": { "interface": 1 } },
+  "permissions": [],
+  "hooks": ["position"],
+  "controls": [
+    { "key": "across", "type": "slider", "label": "Across", "least": -100, "most": 100, "step": 1, "starts": 0, "unit": " px" }
+  ]
+}
