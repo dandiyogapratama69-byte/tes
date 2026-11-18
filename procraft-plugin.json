@@ -1,20 +1,8 @@
 {
   "id": "flipbook-timeline",
-  "name": "Flipbook Timeline - Dreams 2 Style",
+  "name": "Flipbook Timeline",
   "version": "0.1.0",
-  "api_version": 1,
-  "description": "Flipbook Timeline ala Dreams 2. Layer != Frame.",
+  "api_version": 3,
   "module": "flipbook_plugin.wasm",
-  "permissions": [],
-  "commands": [
-    {
-      "id": "flipbook-open",
-      "title": "Open Flipbook Timeline",
-      "params": []
-    }
-  ],
-  "panel": {
-    "id": "flipbook-timeline",
-    "title": "Flipbook Timeline"
-  }
+  "description": "Flipbook Timeline ala Dreams 2. Layer != Frame."
 }
