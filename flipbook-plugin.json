@@ -1,6 +1,6 @@
 {
   "id": "flipbook-timeline",
-  "name": "Flipbook Timeline - Dreams 2 Style",
+  "name": "Flipbook Timeline",
   "version": "0.1.0",
   "kind": "interface",
   "entry": "flipbook_plugin.wasm"
