@@ -2,6 +2,8 @@
 // Layer != Frame. Timeline bawaan OFF, Flipbook ON.
 
 use serde::{Deserialize, Serialize};
+use std::ffi::{CStr, CString};
+use std::os::raw::c_char;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Clip {
@@ -49,7 +51,6 @@ pub struct FlipbookDoc {
 impl FlipbookDoc {
     pub fn new_from_procraft_layers(layer_ids: Vec<(String, String)>) -> Self {
         let mut tracks = Vec::new();
-
         for (id, name) in layer_ids {
             tracks.push(FlipbookTrack {
                 id: format!("track-{}", id),
@@ -67,7 +68,6 @@ impl FlipbookDoc {
                 }],
             });
         }
-
         tracks.push(FlipbookTrack {
             id: "track-phoneme".into(),
             name: "Group Phoneme (Mulut)".into(),
@@ -81,7 +81,6 @@ impl FlipbookDoc {
                 Clip { start_frame: 12, end_frame: 17, source_layer_id: "layer-mulut-o".into(), phoneme: Some("O".into()), label: "O".into() },
             ],
         });
-
         Self { fps: 24, tracks, playhead: 1, native_timeline_hidden: true }
     }
 
@@ -120,14 +119,69 @@ impl FlipbookDoc {
     }
 }
 
-#[no_mangle]
-pub extern "C" fn flipbook_on_enable() -> i32 { 1 }
+// --- INI KUNCINYA: Biar kode di atas nggak dibuang compiler ---
+// Buffer buat balikin JSON ke ProCraft
+static mut OUT_BUFFER: Vec<u8> = Vec::new();
+static mut DOC: Option<FlipbookDoc> = None;
+
+fn get_doc() -> FlipbookDoc {
+    unsafe {
+        if DOC.is_none() {
+            DOC = Some(FlipbookDoc::new_from_procraft_layers(vec![
+                ("layer-bg".to_string(), "Background".to_string()),
+                ("layer-karakter".to_string(), "Karakter".to_string()),
+            ]));
+        }
+        DOC.clone().unwrap()
+    }
+}
 
 #[no_mangle]
-pub extern "C" fn flipbook_on_disable() -> i32 { 1 }
-
-#[no_mangle]
-pub extern "C" fn flipbook_active_layers_json(frame: i64) -> i32 {
-    let _ = frame;
+pub extern "C" fn flipbook_on_enable() -> i32 {
+    let doc = get_doc();
+    // Sengaja pake serde_json + active_layers_at biar nggak dibuang
+    let layers = doc.active_layers_at(1);
+    let _json = serde_json::to_string(&layers).unwrap_or_default();
+    let _json2 = serde_json::to_string(&doc).unwrap_or_default();
     1
+}
+
+#[no_mangle]
+pub extern "C" fn flipbook_on_disable() -> i32 {
+    unsafe { DOC = None; }
+    1
+}
+
+#[no_mangle]
+pub extern "C" fn flipbook_track_count() -> i32 {
+    get_doc().tracks.len() as i32
+}
+
+#[no_mangle]
+pub extern "C" fn flipbook_active_layers_json(frame: i64) -> *const c_char {
+    let doc = get_doc();
+    let layers = doc.active_layers_at(frame);
+    let json = serde_json::to_string(&layers).unwrap_or_else(|_| "[]".to_string());
+    unsafe {
+        OUT_BUFFER = json.into_bytes();
+        OUT_BUFFER.push(0);
+        OUT_BUFFER.as_ptr() as *const c_char
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn flipbook_switch_phoneme(start: i64, end: i64, phoneme_ptr: *const c_char) -> i32 {
+    if phoneme_ptr.is_null() { return 0; }
+    let phoneme = unsafe { CStr::from_ptr(phoneme_ptr).to_string_lossy().to_string() };
+    let mut doc = get_doc();
+    doc.switch_phoneme(start, end, &phoneme);
+    unsafe { DOC = Some(doc); }
+    1
+}
+
+#[no_mangle]
+pub extern "C" fn flipbook_free_string(ptr: *mut c_char) {
+    if !ptr.is_null() {
+        unsafe { let _ = CString::from_raw(ptr); }
+    }
 }
