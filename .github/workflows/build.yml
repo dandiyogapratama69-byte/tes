@@ -1,26 +1,45 @@
 name: Build Flipbook Plugin
 
-on: [push]
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: wasm32-unknown-unknown
-      - run: cargo build --release --target wasm32-unknown-unknown
-      - run: |
-          # Ambil file yang PASTI, jangan pakai find
-          cp target/wasm32-unknown-unknown/release/flipbook_plugin.wasm ./flipbook_plugin.wasm
-          ls -lh flipbook_plugin.wasm procraft-plugin.json
-          cat procraft-plugin.json
-          echo "=== ISI PLUGIN FINAL ==="
-          zip -0 -j flipbook-timeline.procraft-plugin procraft-plugin.json flipbook_plugin.wasm
-          unzip -l flipbook-timeline.procraft-plugin
-          ls -lh flipbook-timeline.procraft-plugin
-      - uses: actions/upload-artifact@v4
+      - name: Checkout repo tes ini
+        uses: actions/checkout@v4
+
+      - name: Clone repo ProCraft resmi
+        run: |
+          git clone https://github.com/artcraft-android/procraft procraft
+
+      - name: Copy plugin kita ke dalam repo ProCraft
+        run: |
+          cp -r plugins/flipbook-timeline procraft/plugins/flipbook-timeline
+          ls -R procraft/plugins/flipbook-timeline
+
+      - name: Install Rust + target WASM
+        run: |
+          rustup target add wasm32-unknown-unknown
+          python3 --version
+
+      - name: Pack pakai packer resmi ProCraft
+        run: |
+          cd procraft
+          python3 tools/pack_plugin.py flipbook-timeline --out ../out
+          ls -lh ../out
+          ls -lh ../out/*
+
+      - name: Cek isi plugin hasil pack resmi
+        run: |
+          ls -lh out/
+          python3 -c "import zipfile; z=zipfile.ZipFile('out/flipbook-timeline.procraft-plugin'); print(z.namelist()); print([(i.filename, i.file_size) for i in z.infolist()])"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
           name: flipbook-plugin
-          path: flipbook-timeline.procraft-plugin
+          path: out/flipbook-timeline.procraft-plugin
