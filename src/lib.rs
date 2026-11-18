@@ -50,7 +50,6 @@ impl FlipbookDoc {
     pub fn new_from_procraft_layers(layer_ids: Vec<(String, String)>) -> Self {
         let mut tracks = Vec::new();
 
-        // Semua layer langsung jadi Frame 1
         for (id, name) in layer_ids {
             tracks.push(FlipbookTrack {
                 id: format!("track-{}", id),
@@ -69,7 +68,6 @@ impl FlipbookDoc {
             });
         }
 
-        // Group Phoneme - Track SWITCH
         tracks.push(FlipbookTrack {
             id: "track-phoneme".into(),
             name: "Group Phoneme (Mulut)".into(),
@@ -87,7 +85,6 @@ impl FlipbookDoc {
         Self { fps: 24, tracks, playhead: 1, native_timeline_hidden: true }
     }
 
-    // Cari layer apa yang aktif di frame ini
     pub fn active_layers_at(&self, frame: i64) -> Vec<String> {
         let mut out = Vec::new();
         for t in &self.tracks {
@@ -100,7 +97,6 @@ impl FlipbookDoc {
         out
     }
 
-    // Ganti phoneme di rentang frame, yang lama auto mati
     pub fn switch_phoneme(&mut self, start: i64, end: i64, phoneme: &str) {
         if let Some(t) = self.tracks.iter_mut().find(|t| t.kind == TrackKind::PhonemeSwitch) {
             t.clips.retain(|c| c.end_frame < start || c.start_frame > end);
@@ -115,7 +111,6 @@ impl FlipbookDoc {
         }
     }
 
-    // Perpanjang blok layer biasa
     pub fn extend_clip(&mut self, track_id: &str, new_end: i64) {
         if let Some(t) = self.tracks.iter_mut().find(|t| t.id == track_id) {
             if let Some(c) = t.clips.first_mut() {
