@@ -1,5 +1,5 @@
 // Flipbook Timeline - ABI resmi ProCraft
-// Export wajib: memory + procraft_run(ptr, len) -> (len << 32) | ptr
+// Export wajib: memory + procraft_alloc + procraft_run(ptr, len) -> (len << 32) | ptr
 
 use serde::{Deserialize, Serialize};
 
@@ -35,7 +35,6 @@ pub struct Output {
     pub tracks: Vec<FlipbookTrack>,
 }
 
-// Buffer output, dialokasi sekali di awal biar nggak ke-reset
 static mut OUT_BUF: [u8; 65536] = [0; 65536];
 static mut IN_BUF: [u8; 65536] = [0; 65536];
 
@@ -109,7 +108,7 @@ pub extern "C" fn procraft_run(input_ptr: u32, input_len: u32) -> u64 {
         let len = json.len().min(OUT_BUF.len());
         OUT_BUF[..len].copy_from_slice(&json[..len]);
         let ptr = OUT_BUF.as_ptr() as u64;
-        // FIX UTAMA: len di atas, ptr di bawah
+        // FIX UTAMA: len di atas (32 bit atas), ptr di bawah (32 bit bawah)
         ((len as u64) << 32) | ptr
     }
 }
