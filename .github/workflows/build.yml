@@ -15,6 +15,7 @@ jobs:
       - name: Clone repo ProCraft resmi
         run: |
           git clone https://github.com/artcraft-android/procraft procraft
+          ls procraft/plugins/ | head -20
 
       - name: Copy plugin kita ke dalam repo ProCraft
         run: |
@@ -30,13 +31,8 @@ jobs:
         run: |
           cd procraft
           python3 tools/pack_plugin.py flipbook-timeline --out ../out
-          ls -lh ../out
+          ls -lh ../out/
           ls -lh ../out/*
-
-      - name: Cek isi plugin hasil pack resmi
-        run: |
-          ls -lh out/
-          python3 -c "import zipfile; z=zipfile.ZipFile('out/flipbook-timeline.procraft-plugin'); print(z.namelist()); print([(i.filename, i.file_size) for i in z.infolist()])"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
