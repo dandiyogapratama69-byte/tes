@@ -12,12 +12,14 @@ jobs:
           targets: wasm32-unknown-unknown
       - run: cargo build --release --target wasm32-unknown-unknown
       - run: |
-          WASM_FILE=$(find target/wasm32-unknown-unknown/release -maxdepth 1 -name "*.wasm" | head -n 1)
-          cp "$WASM_FILE" ./flipbook_plugin.wasm
+          # Ambil file yang PASTI, jangan pakai find
+          cp target/wasm32-unknown-unknown/release/flipbook_plugin.wasm ./flipbook_plugin.wasm
           ls -lh flipbook_plugin.wasm procraft-plugin.json
+          cat procraft-plugin.json
           echo "=== ISI PLUGIN FINAL ==="
           zip -0 -j flipbook-timeline.procraft-plugin procraft-plugin.json flipbook_plugin.wasm
           unzip -l flipbook-timeline.procraft-plugin
+          ls -lh flipbook-timeline.procraft-plugin
       - uses: actions/upload-artifact@v4
         with:
           name: flipbook-plugin
