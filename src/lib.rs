@@ -1,6 +1,5 @@
-// Flipbook Timeline - sesuai ABI resmi ProCraft
-// Export wajib: memory + procraft_run
-// Import wajib: hanya dari host "procraft", NO WASI
+// Flipbook Timeline - ABI resmi ProCraft
+// Export wajib: memory + procraft_run(ptr, len) -> packed (ptr<<32 | len)
 
 use serde::{Deserialize, Serialize};
 
@@ -21,13 +20,10 @@ pub struct FlipbookTrack {
     pub clips: Vec<Clip>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, Default)]
 pub struct Input {
+    #[serde(default)]
     pub frame: i64,
-    pub action: Option<String>,
-    pub phoneme: Option<String>,
-    pub start: Option<i64>,
-    pub end: Option<i64>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -39,12 +35,10 @@ pub struct Output {
     pub tracks: Vec<FlipbookTrack>,
 }
 
-// Buffer output, biar memory ke-export dan nggak dibuang compiler
-static mut OUT_PTR: u32 = 0;
-static mut OUT_LEN: u32 = 0;
 static mut OUT_BUF: [u8; 65536] = [0; 65536];
 
 fn build_doc(frame: i64) -> Output {
+    let frame = if frame < 1 { 1 } else { frame };
     let tracks = vec![
         FlipbookTrack {
             id: "track-karakter".into(),
@@ -80,30 +74,33 @@ fn build_doc(frame: i64) -> Output {
     Output { fps: 24, playhead: frame, native_timeline_hidden: true, active_layers: active, tracks }
 }
 
-// --- ABI RESMI PROCRAFT ---
 #[no_mangle]
 pub extern "C" fn procraft_run(input_ptr: u32, input_len: u32) -> u64 {
-    // Baca input JSON dari memory
-    let input_bytes = unsafe {
-        std::slice::from_raw_parts(input_ptr as *const u8, input_len as usize)
+    let frame: i64 = if input_ptr == 0 || input_len == 0 || input_len > 65536 {
+        1
+    } else {
+        let bytes = unsafe {
+            core::slice::from_raw_parts(input_ptr as *const u8, input_len as usize)
+        };
+        match serde_json::from_slice::<Input>(bytes) {
+            Ok(v) => if v.frame < 1 { 1 } else { v.frame },
+            Err(_) => 1,
+        }
     };
-    let input: Input = serde_json::from_slice(input_bytes).unwrap_or(Input {
-        frame: 1, action: None, phoneme: None, start: None, end: None,
-    });
 
-    let out = build_doc(input.frame);
-    let json = serde_json::to_vec(&out).unwrap_or_else(|_| b"{}".to_vec());
+    let out = build_doc(frame);
+    let json: Vec<u8> = match serde_json::to_vec(&out) {
+        Ok(v) => v,
+        Err(_) => b"{}".to_vec(),
+    };
 
     unsafe {
         let len = json.len().min(OUT_BUF.len());
         OUT_BUF[..len].copy_from_slice(&json[..len]);
-        OUT_PTR = OUT_BUF.as_ptr() as u32;
-        OUT_LEN = len as u32;
-        // Return: (ptr << 32) | len, cara resmi balikin string dari WASM
-        ((OUT_PTR as u64) << 32) | (OUT_LEN as u64)
+        let ptr = OUT_BUF.as_ptr() as u64;
+        (ptr << 32) | (len as u64)
     }
 }
 
-// Biar memory ke-export jelas, jangan dibuang compiler
 #[no_mangle]
-pub extern "C" fn procraft_version() -> u32 { 1 }
+pub extern "C" fn procraft_version() -> u32 { 3 }
