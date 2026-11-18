@@ -1,5 +1,5 @@
 // Flipbook Timeline - ABI resmi ProCraft
-// Export wajib: memory + procraft_run(ptr, len) -> packed (ptr<<32 | len)
+// Export wajib: memory + procraft_run(ptr, len) -> (len << 32) | ptr
 
 use serde::{Deserialize, Serialize};
 
@@ -35,7 +35,9 @@ pub struct Output {
     pub tracks: Vec<FlipbookTrack>,
 }
 
+// Buffer output, dialokasi sekali di awal biar nggak ke-reset
 static mut OUT_BUF: [u8; 65536] = [0; 65536];
+static mut IN_BUF: [u8; 65536] = [0; 65536];
 
 fn build_doc(frame: i64) -> Output {
     let frame = if frame < 1 { 1 } else { frame };
@@ -74,6 +76,15 @@ fn build_doc(frame: i64) -> Output {
     Output { fps: 24, playhead: frame, native_timeline_hidden: true, active_layers: active, tracks }
 }
 
+// WAJIB: biar host bisa nitip input
+#[no_mangle]
+pub extern "C" fn procraft_alloc(len: u32) -> u32 {
+    unsafe {
+        if len as usize > IN_BUF.len() { return 0; }
+        IN_BUF.as_ptr() as u32
+    }
+}
+
 #[no_mangle]
 pub extern "C" fn procraft_run(input_ptr: u32, input_len: u32) -> u64 {
     let frame: i64 = if input_ptr == 0 || input_len == 0 || input_len > 65536 {
@@ -98,7 +109,8 @@ pub extern "C" fn procraft_run(input_ptr: u32, input_len: u32) -> u64 {
         let len = json.len().min(OUT_BUF.len());
         OUT_BUF[..len].copy_from_slice(&json[..len]);
         let ptr = OUT_BUF.as_ptr() as u64;
-        (ptr << 32) | (len as u64)
+        // FIX UTAMA: len di atas, ptr di bawah
+        ((len as u64) << 32) | ptr
     }
 }
 
